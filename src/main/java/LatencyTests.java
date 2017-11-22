@@ -4,14 +4,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.kie.api.KieServices;
-import org.kie.api.definition.KiePackage;
 import org.kie.api.definition.rule.Rule;
 import org.kie.api.event.rule.AfterMatchFiredEvent;
 import org.kie.api.event.rule.AgendaEventListener;
@@ -20,12 +16,8 @@ import org.kie.api.event.rule.AgendaGroupPushedEvent;
 import org.kie.api.event.rule.BeforeMatchFiredEvent;
 import org.kie.api.event.rule.MatchCancelledEvent;
 import org.kie.api.event.rule.MatchCreatedEvent;
-import org.kie.api.event.rule.ObjectDeletedEvent;
-import org.kie.api.event.rule.ObjectInsertedEvent;
-import org.kie.api.event.rule.ObjectUpdatedEvent;
 import org.kie.api.event.rule.RuleFlowGroupActivatedEvent;
 import org.kie.api.event.rule.RuleFlowGroupDeactivatedEvent;
-import org.kie.api.event.rule.RuleRuntimeEventListener;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 
@@ -49,26 +41,27 @@ public class LatencyTests
     int numTransactions = Integer.parseInt(System.getProperty("n"));
     int numSessions = Integer.parseInt(System.getProperty("s"));
 //    int numTransactions = Integer.parseInt("10000");
-//    int numSessions = Integer.parseInt("10");
+//    int numSessions = Integer.parseInt("1");
 
-
+    RuleCountListener ruleCountListener =  new RuleCountListener();
     Runtime runtime = Runtime.getRuntime();
     long beforeUsedMem = runtime.totalMemory() - runtime.freeMemory();
-
+    long startTime = System.nanoTime();
     KieServices kieServices = KieServices.Factory.get();
     KieContainer kieContainer = kieServices.newKieClasspathContainer();
     HashMap<Integer, KieSession> sessions = new HashMap<Integer, KieSession>(numSessions);
     for(int i = 0; i< numSessions; i++){
       final KieSession kieSession = kieContainer.newKieSession();
+      kieSession.addEventListener(ruleCountListener);
       sessions.put(i,kieSession);
-      new Thread(new Runnable()
+      new Thread("SessionFireRuleThread-" + i)
       {
         @Override
         public void run()
         {
           kieSession.fireUntilHalt();
         }
-      }).start();
+      }.start();
     }
 
     TransactionGenerator gen = getTransactionGenerator();
@@ -88,31 +81,46 @@ public class LatencyTests
         }
       }
       Transaction t = gen.generateTransaction(null);
-      int sid = t.getCustomer().hashCode() % numSessions;
+        int sid = t.getCustomer().hashCode() % numSessions;
 
       kieSession = sessions.get(sid);
       kieSession.insert(t);
 
     }
+    long endTime = System.nanoTime();
+    double timeSec = (double) (endTime - startTime) / 1000000000L;
     long afterUsedMem = runtime.totalMemory() - runtime.freeMemory();
 
     try {
       PrintWriter pw = new PrintWriter(new FileOutputStream(new File("log.txt"),true /* append = true */));
-      pw.append(numSessions + "," + numTransactions + "," + (double)((double)(afterUsedMem - beforeUsedMem)/1000000000) + "\n");
+      pw.append(numSessions + "," + numTransactions + "," + (double)((double)(afterUsedMem - beforeUsedMem)
+        /1000000000) + "," + timeSec + "\n");
       pw.close();
     } catch (FileNotFoundException e) {
       e.printStackTrace();
     }
 
+//    Map<String,MutableLong> ruleCounts = new HashMap<>();
 //    for (int i = 0; i < numSessions; i++){
 //      System.out.print("Num Facts : " + sessions.get(i).getFactCount() + " ");
 //      for (AgendaEventListener r : sessions.get(i).getAgendaEventListeners()
 //      ) {
 //          if(r instanceof RuleCountListener){
 //            System.out.println(i + " - " + ((RuleCountListener)r).getMatches());
+//            System.out.println(((RuleCountListener)r).getRuleCount().toString());
+//            Map<String,MutableLong> m = ((RuleCountListener)r).getRuleCount();
+//            for (String rule : m.keySet()) {
+//                if(ruleCounts.containsKey(rule)){
+//                  ruleCounts.get(rule).add(m.get(rule));
+//                }else{
+//                  ruleCounts.put(rule,m.get(rule));
+//                }
+//            }
 //         }
 //      }
 //    }
+
+//    System.out.println(ruleCounts.toString());
     System.out.println("Done");
   }
 
