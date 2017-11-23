@@ -38,9 +38,9 @@ public class LatencyTests
   {
     Logger.getRootLogger().setLevel(Level.OFF);
 
-    int numTransactions = System.getProperty("n") == null ? 10000 : Integer.parseInt(System.getProperty("n")) ;
+    int numTransactions = System.getProperty("n") == null ? 100000 : Integer.parseInt(System.getProperty("n")) ;
     int numSessions = System.getProperty("s") == null ? 100 : Integer.parseInt(System.getProperty("s")) ;
-//    int tps = Integer.parseInt("1000");
+    int tps = System.getProperty("r") == null ? 500 : Integer.parseInt(System.getProperty("r"));
     int interval = System.getProperty("i") == null ? 1000 : Integer.parseInt(System.getProperty("i")) ;
 
     RuleCountListener ruleCountListener =  new RuleCountListener();
@@ -74,54 +74,54 @@ public class LatencyTests
     KieSession kieSession = null;
     long count = 0;
     // ingest
-//    while(true){
-//
-//      long startIngest = System.nanoTime();
-//      for( int i = 0; i < tps; i++){
-//        Transaction t = gen.generateTransaction(null);
-//        int sid = (int)(t.cardNumber % numSessions);
-//        kieSession = sessions.get(sid);
-//        kieSession.insert(t);
-//        count++;
-//        if(count%interval == 0){
-//          System.out.println( count + ","+ (double)(runtime.totalMemory() - runtime.freeMemory() - beforeUsedMem)
-//            /1000000000L);
-//        }
-//      }
-//
-//      long timeTaken = System.nanoTime() - startIngest;
-//      long remainingTime = (1000000000L - timeTaken) / 1000000L;
-//      if (remainingTime <= 0) {
-//        System.out.println("Took more time to ingest by " + -remainingTime + " ms");
-//      } else {
-//        try {
-//          Thread.sleep(remainingTime);
-//        } catch (InterruptedException e) {
-//          e.printStackTrace();
-//        }
-//      }
-//      if( (numTransactions > 0) && (count ==  numTransactions)){
-//        break;
-//      }
-//    }
+    while(true){
 
-    for (int i = 1 ; i <= numTransactions; i++) {
-      if(i!=1 && i%interval==0){
-        try {
-          System.out.println( i + ","+ (double)(runtime.totalMemory() - runtime.freeMemory() - beforeUsedMem)
+      long startIngest = System.nanoTime();
+      for( int i = 0; i < tps; i++){
+        Transaction t = gen.generateTransaction(null);
+        int sid = t.getCustomer().hashCode() % numSessions;
+        kieSession = sessions.get(sid);
+        kieSession.insert(t);
+        count++;
+        if(count%interval == 0){
+          System.out.println( count + ","+ (double)(runtime.totalMemory() - runtime.freeMemory() - beforeUsedMem)
             /1000000000L);
-          Thread.sleep(100);
+        }
+      }
+
+      long timeTaken = System.nanoTime() - startIngest;
+      long remainingTime = (1000000000L - timeTaken) / 1000000L;
+      if (remainingTime <= 0) {
+        System.err.println("Took more time to ingest by " + -remainingTime + " ms");
+      } else {
+        try {
+          Thread.sleep(remainingTime);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
-      Transaction t = gen.generateTransaction(null);
-        int sid = t.getCustomer().hashCode() % numSessions;
-
-      kieSession = sessions.get(sid);
-      kieSession.insert(t);
-
+      if( (numTransactions > 0) && (count ==  numTransactions)){
+        break;
+      }
     }
+
+//    for (int i = 1 ; i <= numTransactions; i++) {
+//      if(i!=1 && i%interval==0){
+//        try {
+//          System.out.println( i + ","+ (double)(runtime.totalMemory() - runtime.freeMemory() - beforeUsedMem)
+//            /1000000000L);
+//          Thread.sleep(100);
+//        } catch (InterruptedException e) {
+//          e.printStackTrace();
+//        }
+//      }
+//      Transaction t = gen.generateTransaction(null);
+//        int sid = t.getCustomer().hashCode() % numSessions;
+//
+//      kieSession = sessions.get(sid);
+//      kieSession.insert(t);
+//
+//    }
     long endTime = System.nanoTime();
     double timeSec = (double) (endTime - startTime) / 1000000000L;
     long afterUsedMem = runtime.totalMemory() - runtime.freeMemory();
