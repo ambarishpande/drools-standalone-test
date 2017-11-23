@@ -105,8 +105,8 @@ public class LatencyTests
 //      }
 //    }
 
-    for (int i = 0; i < numTransactions; i++) {
-      if(i!=0 && i%interval==0){
+    for (int i = 1 ; i <= numTransactions; i++) {
+      if(i!=1 && i%interval==0){
         try {
           System.out.println( i + ","+ (double)(runtime.totalMemory() - runtime.freeMemory() - beforeUsedMem)
             /1000000000L);
