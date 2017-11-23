@@ -38,10 +38,10 @@ public class LatencyTests
   {
     Logger.getRootLogger().setLevel(Level.OFF);
 
-    int numTransactions = Integer.parseInt(System.getProperty("n"));
-    int numSessions = Integer.parseInt(System.getProperty("s"));
-//    int numTransactions = Integer.parseInt("10000");
-//    int numSessions = Integer.parseInt("1");
+    int numTransactions = System.getProperty("n") == null ? 10000 : Integer.parseInt(System.getProperty("n")) ;
+    int numSessions = System.getProperty("s") == null ? 100 : Integer.parseInt(System.getProperty("s")) ;
+//    int tps = Integer.parseInt("1000");
+    int interval = System.getProperty("i") == null ? 1000 : Integer.parseInt(System.getProperty("i")) ;
 
     RuleCountListener ruleCountListener =  new RuleCountListener();
     Runtime runtime = Runtime.getRuntime();
@@ -72,9 +72,44 @@ public class LatencyTests
       e.printStackTrace();
     }
     KieSession kieSession = null;
+    long count = 0;
+    // ingest
+//    while(true){
+//
+//      long startIngest = System.nanoTime();
+//      for( int i = 0; i < tps; i++){
+//        Transaction t = gen.generateTransaction(null);
+//        int sid = (int)(t.cardNumber % numSessions);
+//        kieSession = sessions.get(sid);
+//        kieSession.insert(t);
+//        count++;
+//        if(count%interval == 0){
+//          System.out.println( count + ","+ (double)(runtime.totalMemory() - runtime.freeMemory() - beforeUsedMem)
+//            /1000000000L);
+//        }
+//      }
+//
+//      long timeTaken = System.nanoTime() - startIngest;
+//      long remainingTime = (1000000000L - timeTaken) / 1000000L;
+//      if (remainingTime <= 0) {
+//        System.out.println("Took more time to ingest by " + -remainingTime + " ms");
+//      } else {
+//        try {
+//          Thread.sleep(remainingTime);
+//        } catch (InterruptedException e) {
+//          e.printStackTrace();
+//        }
+//      }
+//      if( (numTransactions > 0) && (count ==  numTransactions)){
+//        break;
+//      }
+//    }
+
     for (int i = 0; i < numTransactions; i++) {
-      if(i%1000==0){
+      if(i!=0 && i%interval==0){
         try {
+          System.out.println( i + ","+ (double)(runtime.totalMemory() - runtime.freeMemory() - beforeUsedMem)
+            /1000000000L);
           Thread.sleep(100);
         } catch (InterruptedException e) {
           e.printStackTrace();
@@ -93,7 +128,7 @@ public class LatencyTests
 
     try {
       PrintWriter pw = new PrintWriter(new FileOutputStream(new File("log.txt"),true /* append = true */));
-      pw.append(numSessions + "," + numTransactions + "," + (double)((double)(afterUsedMem - beforeUsedMem)
+      pw.append(numSessions + "," + numTransactions + "," + ((double)(afterUsedMem - beforeUsedMem)
         /1000000000) + "," + timeSec + "\n");
       pw.close();
     } catch (FileNotFoundException e) {
@@ -121,7 +156,7 @@ public class LatencyTests
 //    }
 
 //    System.out.println(ruleCounts.toString());
-    System.out.println("Done");
+    System.out.println(numTransactions + "-" + numSessions + " Done");
   }
 
 
