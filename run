@@ -1,4 +1,4 @@
 #!/bin/bash
-java -cp $JCP -Dn=$1 -Ds=$2 LatencyTests &
+java -cp $JCP -Dn=$1 -Ds=$2 -Dr=$3 -Di=$4 LatencyTests &
 echo "$1-$2 $!"
 
